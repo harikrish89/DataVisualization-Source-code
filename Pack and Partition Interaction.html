@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+
+<style>
+
+<p>
+  <label for="nRadius" 
+         style="display: inline-block; width: 240px; text-align: right">
+         radius = <span id="nRadius-value">…</span>
+  </label>
+  <input type="range" min="100" max="10000" id="nRadius">
+</p>
+circle {
+  fill: rgb(10, 150, 40);
+  fill-opacity: .1;
+  stroke: rgb(10, 150, 40);
+  stroke-width: 0.5px;
+}
+
+.leaf circle {
+  fill: #fffe1c;
+ 
+}
+rect {
+  stroke: #000;
+}
+text {
+  font: 9px sans-Adelle;
+}
+
+
+div.tooltip {
+ position: absolute;
+ text-align: center;
+ width: 150px;
+ height: 25px;
+ padding: 2px;
+ font-size: 10px;
+ background: #FFFFE0;
+ border: 1px;
+ border-radius: 8px;
+ pointer-events: none;
+}
+
+</style>
+<body>
+<div id="chart"> </div>
+
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+
+
+
+var circle_size = 1000,
+    format = d3.format(",val"),
+    width = 960,
+    height = 250;
+    
+var x = d3.scale.linear()
+    .range([0, width]);
+
+var y = d3.scale.linear()
+    .range([0, height]);
+
+var color = d3.scale.category10();
+
+var bubble = d3.layout.pack()
+    .size([circle_size - 4, circle_size - 4])
+    .value(function(val) { return val.size; });
+    
+var partition = d3.layout.partition()
+    .value(function(d) { return d.size; });
+
+var div = d3.select("body").append("div")
+                .attr("class", "tooltip")
+                .style("opacity", 0);
+                
+var svg = d3.select("#chart").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+
+var svg1 = d3.select("#chart").append("svg")
+    .attr("width", circle_size)
+    .attr("height", circle_size)
+    .append("g")
+    .attr("transform", "translate(1,2)");
+    
+    
+   
+    
+
+
+d3.json("hierarchical data.json", function(json) {
+var rect = svg.data([json]).selectAll("rect")
+      .data(partition.nodes)
+    .enter().append("rect")
+      .attr("x", function(d) { return x(d.x); })
+      .attr("y", function(d) { return y(d.y); })
+      .attr("width", function(d) { return x(d.dx); })
+      .attr("height", function(d) { return y(d.dy); })
+      .attr("fill", function(d) { return color((d.children ? d : d.parent).name); })
+      .on("click", click)
+      .on("mouseover", function(d) {
+   
+      d3.select(this)
+      
+        .transition().duration(300)
+         .style("opacity", 1)
+      div.transition().duration(300)
+         .style("opacity", 1)
+      div.text(d.name + ":" + d.size)
+         .style("left", (d3.event.pageX) + "px")
+         .style("top", (d3.event.pageY -30) + "px");
+         })
+      .on("mouseout", function() {
+      d3.select(this)
+        .transition().duration(300)
+        .style("opacity", 1)
+      div.transition().duration(300)
+         .style("opacity", 1)
+        });
+      
+      
+      
+  function click(d) {
+    x.domain([d.x, d.x + d.dx]);
+    y.domain([d.y, 1]).range([d.y ? 20 : 0, height]);
+
+    rect.transition()
+      .duration(750)
+      .attr("x", function(d) { return x(d.x); })
+      .attr("y", function(d) { return y(d.y); })
+      .attr("width", function(d) { return x(d.x + d.dx) - x(d.x); })
+      .attr("height", function(d) { return y(d.y + d.dy) - y(d.y); });
+  }
+  var child = svg1.datum(json).selectAll(".child")
+      .data(bubble.nodes)
+      .enter().append("g")
+      .attr("class", function(val) { return val.children ? "child" : "leaf child"; })
+      .attr("transform", function(val) { return "translate(" + val.x + "," + val.y + ")"; })
+      .on("click", click)
+      .on("mouseover", function(d) {
+      console.log(d)
+      d3.select(this)
+        .attr("fill", "orange")
+        .transition().duration(300)
+         .style("opacity", 1)
+      div.transition().duration(300)
+         .style("opacity", 1)
+      div.text(d.name + ":" + d.size)
+         .style("left", (d3.event.pageX) + "px")
+         .style("top", (d3.event.pageY -30) + "px");
+         })
+      .on("mouseout", function(d) {
+      d3.select(this)
+        .attr("fill", "rgb(0, 0, " + (d * 10) + ")")
+        .transition().duration(300)
+        .style("opacity", 1)
+      div.transition().duration(300)
+         .style("opacity", 1)
+        });
+      
+    
+  child.append("circle")
+      .attr("r", function(val) { return val.r; });
+
+  child.filter(function(val) { return !val.children; }).append("text")
+      .attr("dy", ".3em")
+      .style("text-anchor", "middle")
+      .text(function(val) { return val.name.substring(0, val.r / 3); });
+});
+
+
+
+
+
+
+
+</script>

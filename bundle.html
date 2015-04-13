@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.node {
+  font: 11px "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.link {
+  stroke: steelblue;
+  stroke-opacity: .4;
+  fill: none;
+}
+
+div.tooltip {
+ position: absolute;
+ text-align: center;
+ width: 150px;
+ height: 25px;
+ padding: 2px;
+ font-size: 10px;
+ background: #FFFFE0;
+ border: 1px;
+ border-radius: 8px;
+ pointer-events: none;
+}
+
+
+</style>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+var dr = 960,
+    radius = dr / 2,
+    i_r = radius - 120;
+
+var layout2 = d3.layout.cluster()
+    .size([360, i_r])
+    .sort(null)
+    .value(function(d) { return d.size; });
+    
+var div = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
+            
+
+var layout1 = d3.layout.bundle();
+
+var line = d3.svg.line.radial()
+    .interpolate("bundle")
+    .tension(.85)
+    .radius(function(d) { return d.y; })
+    .angle(function(d) { return d.x / 180 * Math.PI; });
+
+var svg = d3.select("body").append("svg")
+    .attr("width", dr)
+    .attr("height", dr)
+  .append("g")
+    .attr("transform", "translate(" + radius + "," + radius + ")");
+
+d3.json("hierarchical data1.json", function(error, classes) {
+  var nodes = layout2.nodes(links_nodes(classes)),
+      link = imports(nodes);
+
+  svg.selectAll(".link")
+      .data(layout1(link))
+    .enter().append("path")
+      .attr("class", "link")
+      .attr("d", line);
+
+  svg.selectAll(".node")
+      .data(nodes.filter(function(n) { return !n.children; }))
+      .enter().append("g")
+      .attr("class", "node")
+      .attr("transform", function(d) { return "rotate(" + (d.x - 90) + ")translate(" + d.y + ")"; })
+      .append("text")
+      .attr("dx", function(d) { return d.x < 180 ? 8 : -8; })
+      .attr("dy", ".31em")
+      .attr("text-anchor", function(d) { return d.x < 180 ? "start" : "end"; })
+      .attr("transform", function(d) { return d.x < 180 ? null : "rotate(180)"; })
+      .text(function(d) { return d.key; })
+      .on("mouseover", function(d) {
+
+      console.log(d)
+      d3.select(this)
+        .attr("fill", "orange")
+        .transition().duration(300)
+         .style("opacity", 1)
+      div.transition().duration(300)
+         .style("opacity", 1)
+      div.text(d.name + ":" + d.size)
+         .style("left", (d3.event.pageX) + "px")
+         .style("top", (d3.event.pageY -30) + "px");
+         })
+      .on("mouseout", function(d) {
+     
+      d3.select(this)
+        .attr("fill", "rgb(0, 0, " + (d * 10) + ")")
+        .transition().duration(300)
+        .style("opacity", 1)
+      div.transition().duration(300)
+         .style("opacity", 1)
+        });
+});
+
+d3.select(self.frameElement).style("height", dr + "px");
+
+function links_nodes(classes) {
+  var map = {};
+
+  function search(name, data) {
+    var node = map[name], i;
+    if (!node) {
+      node = map[name] = data || {name: name, children: []};
+      if (name.length) {
+        node.parent = search(name.substring(0, i = name.lastIndexOf(".")));
+        node.parent.children.push(node);
+        node.key = name.substring(i + 1);
+      }
+    }
+    return node;
+  }
+
+  classes.forEach(function(d) {
+    search(d.name, d);
+  });
+
+  return map[""];
+}
+
+function imports(nodes) {
+  var map = {},
+      imports = [];
+
+  
+  nodes.forEach(function(d) {
+    map[d.name] = d;
+  });
+
+  
+  nodes.forEach(function(d) {
+    if (d.imports) d.imports.forEach(function(i) {
+      imports.push({source: map[d.name], target: map[i]});
+    });
+  });
+
+  return imports;
+}
+
+</script>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+  
+    
+    <style >
+
+<p>
+  <label for="nRadius" 
+         style="display: inline-block; width: 240px; text-align: right">
+         radius = <span id="nRadius-value">…</span>
+  </label>
+  <input type="range" min="100" max="10000" id="nRadius">
+</p>
+rect {
+  stroke: #000;
+}
+text {
+  font: 9px sans-Adelle;
+}
+
+div.tooltip {
+ position: absolute;
+ text-align: center;
+ width: 150px;
+ height: 25px;
+ padding: 2px;
+ font-size: 10px;
+ background: #FFFFE0;
+ border: 1px;
+ border-radius: 8px;
+ pointer-events: none;
+}
+    </style>
+  
+  <body>
+    <div id="chart"></div>
+    <script src="d3.min.js"></script>
+<script>
+
+var width = 960,
+    height = 250;
+format = d3.format(",val");
+
+var div = d3.select("body").append("div")
+                .attr("class", "tooltip")
+                .style("opacity", 0);
+                
+var x = d3.scale.linear()
+    .range([0, width]);
+
+var y = d3.scale.linear()
+    .range([0, height]);
+
+var color = d3.scale.category10();
+
+var svg = d3.select("#chart").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+var layout1 = d3.layout.partition()
+    .value(function(d) { return d.size; });
+
+d3.json("hierarchical data.json", function(json) {
+  var rect = svg.data([json]).selectAll("rect")
+      .data(layout1.nodes)
+    .enter().append("rect")
+      .attr("x", function(d) { return x(d.x); })
+      .attr("y", function(d) { return y(d.y); })
+      .attr("width", function(d) { return x(d.dx); })
+      .attr("height", function(d) { return y(d.dy); })
+      .attr("fill", function(d) { return color((d.children ? d : d.parent).name); })
+      .on("click", onclick)
+      .on("mouseover", function(d) {
+      
+      d3.select(this)
+      
+        .transition().duration(300)
+         .style("opacity", 1)
+      div.transition().duration(300)
+         .style("opacity", 1)
+      div.text(d.name + ":" + d.size)
+         .style("left", (d3.event.pageX) + "px")
+         .style("top", (d3.event.pageY -30) + "px");
+         })
+      .on("mouseout", function() {
+      d3.select(this)
+        .transition().duration(300)
+        .style("opacity", 1)
+      div.transition().duration(300)
+         .style("opacity", 1)
+        });
+      
+      
+      
+  function onclick(d) {
+    x.domain([d.x, d.x + d.dx]);
+    y.domain([d.y, 1]).range([d.y ? 10 : 0, height]);
+
+    rect.transition()
+      .duration(1000)
+      .attr("x", function(d) { return x(d.x); })
+      .attr("y", function(d) { return y(d.y); })
+      .attr("width", function(d) { return x(d.x + d.dx) - x(d.x); })
+      .attr("height", function(d) { return y(d.y + d.dy) - y(d.y); });
+  }
+});
+
+    </script>
+  </body>
+</html>
